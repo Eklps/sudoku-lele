@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数独乐乐游戏</title>
+    <!-- 引入Axios库 -->
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        /* 样式保持不变 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4efe9 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #2c3e50;
+            position: relative;
+        }
+        
+        .container {
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            padding: 30px;
+            position: relative;
+        }
+        
+        .external-link-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #9b59b6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(155, 89, 182, 0.2);
+            font-weight: 600;
+            z-index: 10;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .external-link-btn:hover {
+            background: #8e44ad;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(155, 89, 182, 0.3);
+        }
+        
+        header {
+            margin-bottom: 30px;
+            position: relative;
+            padding-top: 10px;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin: 15px 0;
+            color: #2c3e50;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1::after {
+            content: '';
+            display: block;
+            width: 80px;
+            height: 5px;
+            background: linear-gradient(to right, #3498db, #2ecc71);
+            margin: 10px auto;
+            border-radius: 5px;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.2rem;
+            margin-bottom: 25px;
+        }
+        
+        .sudoku-container {
+            display: inline-block;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 3px solid #2c3e50;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            margin: 20px 0 30px;
+        }
+        
+        .sudoku-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 0;
+            position: relative;
+        }
+        
+        .sudoku-cell {
+            aspect-ratio: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.8rem;
+            font-weight: 600;
+            position: relative;
+            background: white;
+            transition: background-color 0.3s;
+            width: 55px;
+        }
+        
+        .sudoku-cell:hover {
+            background: #f8f9fa;
+        }
+        
+        .sudoku-cell {
+            border: 1px solid #bdc3c7;
+        }
+        
+        .sudoku-cell:nth-child(3n):not(:nth-child(9n)) {
+            border-right: 3px solid #34495e;
+        }
+        
+        .sudoku-row:nth-child(3n) .sudoku-cell {
+            border-bottom: 3px solid #34495e;
+        }
+        
+        .prefilled {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        
+        .user-filled {
+            color: #3498db;
+            font-weight: 600;
+        }
+        
+        .corner-marks {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            font-size: 0.6rem;
+            color: #95a5a6;
+            line-height: 1;
+        }
+        
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 25px 0;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.2);
+            font-weight: 600;
+            min-width: 150px;
+        }
+        
+        button:hover {
+            background: #2980b9;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn-check {
+            background: #27ae60;
+            box-shadow: 0 4px 8px rgba(39, 174, 96, 0.2);
+        }
+        
+        .btn-check:hover {
+            background: #219653;
+            box-shadow: 0 6px 12px rgba(39, 174, 96, 0.3);
+        }
+        
+        .btn-reset {
+            background: #e74c3c;
+            box-shadow: 0 4px 8px rgba(231, 76, 60, 0.2);
+        }
+        
+        .btn-reset:hover {
+            background: #c0392b;
+            box-shadow: 0 6px 12px rgba(231, 76, 60, 0.3);
+        }
+        
+        .difficulty {
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+        
+        .highlight {
+            background-color: #d6eaf8 !important;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin: 20px 0;
+            font-size: 1.1rem;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+            min-width: 150px;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .loading {
+            padding: 20px;
+            font-size: 1.2rem;
+            color: #3498db;
+        }
+        
+        .error {
+            padding: 20px;
+            font-size: 1.2rem;
+            color: #e74c3c;
+        }
+        
+        @media (max-width: 600px) {
+            .sudoku-cell {
+                width: 35px;
+                font-size: 1.4rem;
+            }
+            
+            button {
+                padding: 10px 15px;
+                min-width: 120px;
+                font-size: 1rem;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            .external-link-btn {
+                padding: 8px 15px;
+                font-size: 0.8rem;
+                top: 10px;
+                right: 10px;
+            }
+            
+            .stat-card {
+                padding: 10px 15px;
+                min-width: 120px;
+            }
+            
+            .stat-value {
+                font-size: 1.4rem;
+            }
+        }
+        
+        .sudoku-cell:nth-child(9n+1),
+        .sudoku-cell:nth-child(9n+2),
+        .sudoku-cell:nth-child(9n+3) {
+            background-color: rgba(234, 250, 241, 0.3);
+        }
+        
+        .sudoku-cell:nth-child(9n+4),
+        .sudoku-cell:nth-child(9n+5),
+        .sudoku-cell:nth-child(9n+6) {
+            background-color: rgba(245, 247, 250, 0.3);
+        }
+
+        .invalid {
+            border: 2px solid #e74c3c !important;
+            background-color: #fdecea !important;
+        }
+
+        .hint-text {
+            font-size: 0.7rem;
+            color: #2ecc71;
+            pointer-events: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- 数独解题指南链接 -->
+    <a href="https://www.sudokuwiki.org/Sudoku.htm" target="_blank" class="external-link-btn">
+        数独解题指南
+    </a>
+    
+    <div class="container">
+        <header>
+            <h1>数独乐乐游戏</h1>
+            <p class="subtitle">挑战您的逻辑思维能力</p>
+        </header>
+        
+        <div class="sudoku-container">
+            <div class="sudoku-grid" id="sudokuGrid">
+                <div class="loading">正在加载数独数据...</div>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div>空格数量</div>
+                <div class="stat-value" id="emptyCells">--</div>
+            </div>
+            <div class="stat-card">
+                <div>游戏状态</div>
+                <div class="stat-value" id="apiStatus">加载中</div>
+            </div>
+        </div>
+        
+        <div class="control-panel">
+            <button class="btn-check" id="checkBtn">检查答案</button>
+            <button id="undoBtn">撤销操作</button>
+            <button id="redoBtn">重做操作</button>
+            <button id="hintBtn">获取提示</button>
+            <button class="btn-reset" id="resetBtn">重置游戏</button>
+        </div>
+        
+        <div class="difficulty">
+            <span>当前状态：</span>
+            <strong id="statusDisplay">正在创建游戏...</strong>
+        </div>
+    </div>
+    
+    <script>
+        // 全局状态对象
+        const sudokuState = {
+            puzzle: null,
+            gameId: null,
+            loaded: false,
+            emptyCells: 0
+        };
+        // 用于记录上一次非法输入的单元格位置（如果有）
+        let lastInvalidCell = null;
+        
+        // DOM元素
+        const gridContainer = document.getElementById('sudokuGrid');
+        const statusDisplay = document.getElementById('statusDisplay');
+        const emptyCellsElement = document.getElementById('emptyCells');
+        const apiStatusElement = document.getElementById('apiStatus');
+        const checkBtn = document.getElementById('checkBtn');
+        const undoBtn = document.getElementById('undoBtn');
+        const redoBtn = document.getElementById('redoBtn');
+        const hintBtn = document.getElementById('hintBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        
+        // 主函数 - 初始化数独展示
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始加载数独
+            createNewGame();
+            
+            // 撤销按钮事件
+            undoBtn.addEventListener('click', () => {
+                if (sudokuState.loaded) {
+                    undoMove();
+                }
+            });
+            
+            // 重做按钮事件
+            redoBtn.addEventListener('click', () => {
+                if (sudokuState.loaded) {
+                    redoMove();
+                }
+            });
+            
+            // 提示按钮事件
+            hintBtn.addEventListener('click', () => {
+                if (sudokuState.loaded) {
+                    getHint();
+                }
+            });
+            
+            // 重置按钮事件
+            resetBtn.addEventListener('click', () => {
+                if (sudokuState.loaded) restartGame();
+                else createNewGame();
+            });
+            
+            // 检查按钮事件
+            checkBtn.addEventListener('click', () => {
+                if (!sudokuState.loaded) {
+                    alert('游戏数据还未加载完成');
+                    return;
+                }
+                
+                // 实际项目中这里应调用后端的验证API
+                const filled = document.querySelectorAll('.sudoku-cell.user-filled:not(:empty)').length;
+                const remaining = sudokuState.emptyCells - filled;
+                alert(remaining === 0 ? '所有空格已填满，请检查答案是否正确！' : `已填写 ${filled} 个空格，剩余 ${remaining} 个空格`);
+            });
+        });
+        
+        // ===== API操作函数 =====
+        
+        // 创建新游戏
+        function createNewGame() {
+            gridContainer.innerHTML = '<div class="loading">正在创建新游戏...</div>';
+            statusDisplay.textContent = '正在创建新游戏...';
+            statusDisplay.style.color = '#3498db';
+            apiStatusElement.textContent = '请求中';
+            apiStatusElement.style.color = '#3498db';
+            
+            // 使用Axios调用创建游戏API (GET /api/games)
+            axios.get('/api/games')
+                .then(response => {
+                    const result = response.data;
+                    
+                    if (result.code !== 1) {
+                        throw new Error(result.msg || '游戏创建失败');
+                    }
+              
+                    const gameData = result.data;
+                    const allCells = gameData.grid.allCells;
+              
+                    sudokuState.gameId = gameData.gameId;
+                    sudokuState.puzzle = allCells;
+                    sudokuState.loaded = true;
+                    sudokuState.emptyCells = allCells.flat().filter(cell => cell.value === 0).length;
+                    
+                    emptyCellsElement.textContent = sudokuState.emptyCells;
+                    apiStatusElement.textContent = '200 OK';
+                    apiStatusElement.style.color = '#27ae60';
+                    statusDisplay.textContent = '游戏进行中';
+                    statusDisplay.style.color = '#2c3e50';
+                    
+                    createSudokuGrid(allCells);
+                })
+                .catch(error => {
+                    console.error('创建游戏时出错:', error);
+                    apiStatusElement.textContent = '错误';
+                    apiStatusElement.style.color = '#e74c3c';
+                    statusDisplay.textContent = '创建失败';
+                    statusDisplay.style.color = '#e74c3c';
+                    gridContainer.innerHTML = '<div class="error">游戏创建失败: ' + error.message + '</div>';
+                });
+        }
+        
+        // 计算当前空格数量的辅助函数
+        function updateEmptyCellsCount() {
+            let emptyCells = 0;
+            document.querySelectorAll('.sudoku-cell').forEach(cell => {
+                const hasValidContent = cell.querySelector('.prefilled') || 
+                                      (cell.querySelector('.user-filled') && !cell.querySelector('.user-filled.invalid'));
+                if (!hasValidContent) {
+                    emptyCells++;
+                }
+            });
+            sudokuState.emptyCells = emptyCells;
+            emptyCellsElement.textContent = emptyCells;
+        }
+
+        // 提交走子操作
+        function makeMove(row, col, value) {
+            // 验证游戏状态
+            if (!sudokuState.loaded) {
+                alert('游戏还未准备好');
+                return;
+            }
+            
+            const cellElement = document.querySelector(
+                `.sudoku-cell[data-row="${row}"][data-col="${col}"]`
+            );
+
+            // 清除旧的非法标记
+            cellElement.classList.remove('invalid');
+
+            // 本地非法值检测（如0或非数字）
+            if (!value || isNaN(value) || value < 1 || value > 9) {
+                alert('非法输入：请输入 1~9 之间的数字');
+                cellElement.classList.add('invalid');
+                lastInvalidCell = { row, col }; // 用于撤销非法输入
+                return;
+            }
+
+            // 使用Axios调用提交走子API (PUT /api/games/{gameId}/cell)
+            axios.put(`/api/games/${sudokuState.gameId}/cell`, {
+                row: parseInt(row),
+                col: parseInt(col),
+                value: value
+            })
+            .then(response => {
+                const result = response.data;
+                if (result.code !== 1) {
+                    // 显示错误的数字并标记为无效
+                    const number = document.createElement('div');
+                    number.className = 'user-filled invalid';
+                    number.textContent = value;
+                    cellElement.innerHTML = '';
+                    cellElement.appendChild(number);
+                    cellElement.classList.add('invalid');
+                    cellElement.contentEditable = false;
+                    cellElement.blur();
+                    
+                    alert('走子无效: ' + result.msg);
+                    lastInvalidCell = { row, col };
+                    // 错误输入不改变空格数量
+                    updateEmptyCellsCount();
+                    return;
+                }
+
+                // 成功走子，清除非法高亮
+                cellElement.classList.remove('invalid');
+
+                // 渲染新值
+                const data = result.data;
+                if (value === null || value === 0) {
+                    cellElement.innerHTML = '';
+                    cellElement.contentEditable = true;
+                } else {
+                    const number = document.createElement('div');
+                    number.className = 'user-filled';
+                    number.textContent = value;
+                    cellElement.innerHTML = '';
+                    cellElement.appendChild(number);
+                    cellElement.contentEditable = false;
+                    cellElement.blur(); // 失去焦点，避免光标停留
+                }
+
+                // 重新计算空格数量
+                updateEmptyCellsCount();
+
+                // 状态判断
+                if (data.status === 'SOLVED') {
+                    statusDisplay.textContent = '已解决';
+                    statusDisplay.style.color = '#27ae60';
+                    alert('恭喜！您成功解决了这个数独！');
+                }
+            })
+            .catch(error => {
+                console.error('提交走子时出错:', error);
+                alert('操作失败: ' + error.message);
+            });
+        }
+        
+        // 撤销操作
+        function undoMove() {
+            // 如果有非法输入高亮，清除它
+            if (lastInvalidCell) {
+                const { row, col } = lastInvalidCell;
+                const cell = document.querySelector(`.sudoku-cell[data-row="${row}"][data-col="${col}"]`);
+                if (cell) {
+                    cell.innerHTML = '';
+                    cell.classList.remove('invalid');
+                    cell.contentEditable = true;
+                }
+                lastInvalidCell = null;
+                updateEmptyCellsCount(); // 更新空格数量
+                statusDisplay.textContent = '撤销非法输入';
+                setTimeout(() => {
+                    statusDisplay.textContent = '游戏进行中';
+                }, 2000);
+                return;
+            }
+
+            // 使用Axios调用撤销API (POST /api/games/{gameId}/undo)
+            axios.post(`/api/games/${sudokuState.gameId}/undo`)
+                .then(response => {
+                    const result = response.data;
+                    if (result.code === 1) {
+                        // 更新网格和空格数量
+                        const newGrid = result.data.grid.allCells;
+                        createSudokuGrid(newGrid);
+                        sudokuState.emptyCells = newGrid.flat().filter(cell => cell.value === 0).length;
+                        emptyCellsElement.textContent = sudokuState.emptyCells;
+                        statusDisplay.textContent = '撤销成功';
+                        setTimeout(() => {
+                            statusDisplay.textContent = '游戏进行中';
+                        }, 2000);
+                    } else {
+                        alert('撤销失败: ' + result.msg);
+                    }
+                })
+                .catch(error => {
+                    console.error('撤销操作时出错:', error);
+                    alert('操作失败: ' + error.message);
+                });
+        }
+        
+        // 重做操作
+        function redoMove() {
+            // 使用Axios调用重做API (POST /api/games/{gameId}/redo)
+            axios.post(`/api/games/${sudokuState.gameId}/redo`)
+                .then(response => {
+                    const result = response.data;
+                    if (result.code === 1) {
+                        // 更新网格和空格数量
+                        const newGrid = result.data.grid.allCells;
+                        createSudokuGrid(newGrid);
+                        sudokuState.emptyCells = newGrid.flat().filter(cell => cell.value === 0).length;
+                        emptyCellsElement.textContent = sudokuState.emptyCells;
+                        statusDisplay.textContent = '重做成功';
+                        setTimeout(() => {
+                            statusDisplay.textContent = '游戏进行中';
+                        }, 2000);
+                    } else {
+                        alert('重做失败: ' + result.msg);
+                    }
+                })
+                .catch(error => {
+                    console.error('重做操作时出错:', error);
+                    alert('操作失败: ' + error.message);
+                });
+        }
+        
+        // 获取提示
+        function getHint() {
+            // 使用Axios调用提示API (GET /api/games/{gameId}/hint)
+            axios.get(`/api/games/${sudokuState.gameId}/hint`)
+                .then(response => {
+                    const result = response.data;
+                    if (result.code === 1) {
+                        const hint = result.data;
+                        const { row, col, value } = hint.suggestedMove;
+
+                        const cell = document.querySelector(`.sudoku-cell[data-row="${row}"][data-col="${col}"]`);
+                
+                        // 如果该格子为空，则插入绿色小字体提示
+                        if (cell && cell.innerHTML.trim() === '') {
+                            const hintDiv = document.createElement('div');
+                            hintDiv.textContent = value;
+                            hintDiv.className = 'hint-text';
+                            cell.innerHTML = '';  // 清空再插入
+                            cell.appendChild(hintDiv);
+
+                            // 设置为可编辑并自动处理用户输入
+                            cell.contentEditable = true;
+                            cell.addEventListener('input', function handler() {
+                                const val = this.textContent.trim();
+                                if (/^[1-9]$/.test(val)) {
+                                    makeMove(row, col, parseInt(val));
+                                    this.removeEventListener('input', handler);
+                                    this.blur(); // 失去焦点
+                                } else if (val === '') {
+                                    // 用户又删了输入，不移除提示
+                                    return;
+                                }
+
+                                // 无论合法与否，都移除提示文字
+                                const existingHint = this.querySelector('.hint-text');
+                                if (existingHint) existingHint.remove();
+                            });
+                        }
+
+                        // 可选：高亮该格子
+                        cell.classList.add('highlight');
+                        setTimeout(() => {
+                            cell.classList.remove('highlight');
+                        }, 2000);
+
+                        // 可选：显示简短策略说明（不再 alert）
+                        statusDisplay.textContent = `${hint.strategyName}：(${row + 1},${col + 1}) → ${value}`;
+                        statusDisplay.style.color = '#27ae60';
+                        setTimeout(() => {
+                            statusDisplay.textContent = '游戏进行中';
+                            statusDisplay.style.color = '#2c3e50';
+                        }, 5000);
+
+                    } else {
+                        alert('获取提示失败: ' + result.msg);
+                    }
+                })
+                .catch(error => {
+                    console.error('获取提示时出错:', error);
+                    alert('操作失败: ' + error.message);
+                });
+        }
+
+        //新增 restartGame 函数
+        function restartGame() {
+            gridContainer.innerHTML = '<div class="loading">正在重置游戏...</div>';
+            statusDisplay.textContent = '正在重置游戏...';
+            statusDisplay.style.color = '#e67e22';
+            apiStatusElement.textContent = '请求中';
+            apiStatusElement.style.color = '#e67e22';
+            
+            // 修复：使用正确的API端点 /reset 而不是 /restart
+            axios.post(`/api/games/${sudokuState.gameId}/reset`)
+                .then(response => {
+                    const result = response.data;
+                    if (result.code !== 1) {
+                        throw new Error(result.msg || '游戏重置失败');
+                    }
+
+                    const gameData = result.data;
+                    const allCells = gameData.grid.allCells;
+
+                    sudokuState.puzzle = allCells;
+                    sudokuState.loaded = true;
+                    sudokuState.emptyCells = allCells.flat().filter(cell => cell.value === 0).length;
+
+                    emptyCellsElement.textContent = sudokuState.emptyCells;
+                    apiStatusElement.textContent = '200 OK';
+                    apiStatusElement.style.color = '#27ae60';
+                    statusDisplay.textContent = '游戏已重置';
+                    statusDisplay.style.color = '#2c3e50';
+
+                    createSudokuGrid(allCells);
+                })
+                .catch(error => {
+                    console.error('重置游戏失败:', error);
+                    apiStatusElement.textContent = '错误';
+                    apiStatusElement.style.color = '#e74c3c';
+                    statusDisplay.textContent = '重置失败';
+                    statusDisplay.style.color = '#e74c3c';
+                    gridContainer.innerHTML = '<div class="error">游戏重置失败: ' + error.message + '</div>';
+                });
+        }
+        
+        // ===== UI相关函数 =====
+        
+        // 创建数独网格
+        function createSudokuGrid(grid) {
+            gridContainer.innerHTML = '';
+            gridContainer.style.display = 'grid';
+            gridContainer.style.gridTemplateColumns = 'repeat(9, 1fr)';
+
+            for (let row = 0; row < 9; row++) {
+                for (let col = 0; col < 9; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'sudoku-cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+
+                    const cellData = grid[row][col];
+
+                    if (cellData.value !== 0) {
+                        const number = document.createElement('div');
+                        number.textContent = cellData.value;
+                        number.className = cellData.given ? 'prefilled' : 'user-filled';
+                        cell.appendChild(number);
+                    } else {
+                        cell.contentEditable = true;
+                        cell.addEventListener('input', function() {
+                            const value = this.textContent.trim();
+                            if (!/^[1-9]?$/.test(value)) {
+                                this.textContent = '';
+                                return;
+                            }
+                            if (value !== '') {
+                                makeMove(row, col, parseInt(value));
+                                this.blur(); // 立即失去焦点
+                            }
+                        });
+                    }
+
+                    cell.addEventListener('click', function() {
+                    highlightRelatedCells(row, col);
+                    });
+
+                    gridContainer.appendChild(cell);
+                }
+            }
+
+            //更新空格数量
+            const emptyCount = grid.flat().filter(cell => cell.value === 0).length;
+            sudokuState.emptyCells = emptyCount;
+            emptyCellsElement.textContent = emptyCount;
+        }
+        
+        // 高亮相关单元格
+        function highlightRelatedCells(row, col) {
+            document.querySelectorAll('.sudoku-cell').forEach(cell => {
+                cell.classList.remove('highlight');
+                const r = parseInt(cell.dataset.row);
+                const c = parseInt(cell.dataset.col);
+                if (r === row || c === col || (Math.floor(r / 3) === Math.floor(row / 3) && Math.floor(c / 3) === Math.floor(col / 3))) {
+                    cell.classList.add('highlight');
+                }
+            });
+        }
+    </script>
+</body>
+</html> 
